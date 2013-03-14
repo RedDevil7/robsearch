@@ -6,7 +6,7 @@ import re
 import sys
 import cPickle
 from time import strftime, localtime
-from urllib2 import urlopen
+from urllib2 import urlopen, Request
 from threading import Thread, Event, RLock
 from BeautifulSoup import BeautifulSoup as be
 from Queue import PriorityQueue, Empty
@@ -20,6 +20,7 @@ class Crawler:
 		self.lock = RLock()
 		self.accept = re.compile('http://.+\.pl/')
 		self.reject = re.compile('^.*\.(png|jpg|jpeg|gif|css|js|ico|mp3|wav|swf|jar|java|dat|txt|doc|pdf|zip|7z|tar|rar|gz)$', re.I)
+		self.headers = { "User-Agent" : "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.9.2.16) Gecko/20110319 Firefox/3.6.16" }
 
 		for link in initialLinks:
 			self.queue.put(((0, 0), link))
@@ -39,7 +40,7 @@ class Crawler:
 			while not self.stopped.is_set():
 				self.stopped.wait(1)
 				i += 1
-				if i > 300:
+				if i > 1000:
 					i = 0
 					with self.lock:
 						self.saveDomains()
@@ -68,9 +69,11 @@ class Crawler:
 
 
 	def saveDomains(self):
+		self.debug('saving started')
 		with SimpleFlock(self.domainsPath + '.lock', 2):
 			with open(self.domainsPath, 'wb') as fh:
-				cPickle.dump(self.domains, fh, 2)
+				cPickle.dump(self.domains, fh, -1)
+		self.debug('saving ended')
 
 
 
@@ -84,6 +87,7 @@ class Worker(Thread):
 		while not self.crawler.stopped.is_set():
 			try:
 				priority, link = self.crawler.queue.get_nowait()
+				domain = urlparse.urlparse(link)[1]
 				priority, distance = priority
 				self.crawler.debug('pri:%d, dis:%d::  %s' % (priority, distance, link))
 				sys.stderr.flush()
@@ -93,7 +97,8 @@ class Worker(Thread):
 
 			#download
 			try:
-				raw = urlopen(link, None, 5).read()
+				request = Request(link, None, self.crawler.headers)
+				raw = urlopen(request, None, 5).read()
 				try:
 					content = raw.decode('utf-8')
 				except UnicodeError as inst:
@@ -122,18 +127,19 @@ class Worker(Thread):
 					if subLink in self.crawler.visited:
 						continue
 					index += 1
-					domain = urlparse.urlparse(subLink)[1]
+					subdomain = urlparse.urlparse(subLink)[1]
 					with self.crawler.lock:
 						self.crawler.visited.add(subLink)
-						if domain not in self.crawler.domains:
+						if subdomain not in self.crawler.domains:
 							sys.stdout.flush()
-							self.crawler.debug('new domain: ' + domain)
-							self.crawler.domains[domain] = 1
+							self.crawler.debug('new domain: ' + subdomain)
+							self.crawler.domains[subdomain] = 1
 						else:
-							self.crawler.domains[domain] += 1
+							self.crawler.domains[subdomain] += 1
 						priority = 0
 						priority -= distance
-						priority -= (25 + distance ** 2) / float(self.crawler.domains[domain])
+						priority -= (25 + distance ** 2) / float(self.crawler.domains[subdomain])
+						priority -= 25 * (subdomain != domain)
 						priority += index
 					self.crawler.queue.put(((priority, distance + 1), subLink))
 			except Exception as inst:
