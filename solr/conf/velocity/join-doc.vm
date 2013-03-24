@@ -1,0 +1,13 @@
+<div class="result-title"><b>$docId</b></div>
+<div>URL: <a href="http://$docId/robots.txt">robots.txt</a></div>
+#foreach($fieldname in $doc.fieldNames)
+     <br>
+       <span class="field-name">$fieldname:</span>
+       <ul>
+       #foreach($value in $doc.getFieldValues($fieldname))
+         <li>$esc.html($value)</li>
+       #end
+       </ul>
+  #end
+<br>
+#parse('debug.vm')

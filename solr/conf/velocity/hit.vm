@@ -1,0 +1,4 @@
+#set($docId = $doc.getFieldValue('domain'))
+<div class="result-document">
+  #parse("join-doc.vm")
+</div>

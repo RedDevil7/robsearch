@@ -1,0 +1,19 @@
+#set($queryOpts = $params.get("queryOpts"))
+#if($queryOpts == "group")
+<div>
+        #set($groupF = $request.params.get('group.field'))
+        <label #annTitle("Add the &group.field parameter. Multiselect is supported")>Group By:
+          <select id="group" name="group.field" multiple="true">
+            ##TODO: Handle multiple selects correctly
+            <option value="none"
+            #if($groupF == '')selected="true"#end>No Group</option>
+            <option value="user-agent"
+            #if($groupF == 'user-agent')selected="true"#end>User-agent</option>
+            <option value="crawl-delay"
+            #if($groupF == 'crawl-delay')selected="true"#end>Crawl-delay</option>
+          </select>
+        </label>  
+<input type="hidden" name="group" value="true"/>
+</div>
+
+#end
