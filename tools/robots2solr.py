@@ -1,16 +1,21 @@
-﻿import sys
-
+﻿#!/usr/bin/python
+# -*- coding: utf-8 -*-
+import sys,os
+"""
+Example usage:
+python robots2solr.py dir_with_robots/ output_dir/
+"""
 
 def convert(filename):
     """Converts robots.txt file into Solr-like XML format."""
-    with file(filename + '.xml', 'w') as xml_file:
+    with file(sys.argv[2] + filename + '.xml', 'w') as xml_file:
         xml_file.write('<add>\n<doc>\n')
         domain = filename
         ext = filename.find('.txt')
         if ext >= 0:
             domain = domain[:ext]
         add_field(xml_file, "domain", domain)
-        with file(filename, 'r') as robots_file:
+        with file(sys.argv[1] + filename, 'r') as robots_file:
             for raw_line in robots_file:
                 # remove whitespace
                 line = raw_line.strip()
@@ -55,8 +60,6 @@ def encodeXMLText(text):
 
 
 if __name__ == "__main__":
-    count = len(sys.argv[1:])
-    for filename in sys.argv[1:]:
-        print str(count) + ' files left: ' + filename
-        count -= 1
+    for filename in os.listdir(sys.argv[1]):
+        print '> ' + filename
         convert(filename)
