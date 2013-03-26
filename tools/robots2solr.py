@@ -6,7 +6,7 @@ Example usage:
 python robots2solr.py dir_with_robots/ output_dir/
 """
 
-def convert(filename):
+def convert(filename, robot_path, xml_path):
     """Converts robots.txt file into Solr-like XML format."""
     with file(sys.argv[2] + filename + '.xml', 'w') as xml_file:
         xml_file.write('<add>\n<doc>\n')
@@ -61,5 +61,9 @@ def encodeXMLText(text):
 
 if __name__ == "__main__":
     for filename in os.listdir(sys.argv[1]):
-        print '> ' + filename
-        convert(filename)
+        robot_path = sys.argv[1] + filename
+        if os.path.isfile(robot_path):
+            xml_path = sys.argv[2] + filename + '.xml'
+            if not os.path.exists(xml_path):
+                print '> ' + filename
+                convert(filename, robot_path, xml_path)
